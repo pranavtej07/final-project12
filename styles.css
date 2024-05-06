@@ -1,0 +1,143 @@
+body, h1, h2, h3, p, ul, ol {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: "Arial", sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+  color: #333333; 
+  background-color: #f8f8f8;
+}
+
+.title {
+  animation: gradientChange 2s infinite; /* Apply animation */
+  padding: 40px; /* Ample padding */
+  border-radius: 8px; /* Rounded corners */
+  color: white; /* White text */
+}
+
+@keyframes gradientChange {
+  0% {
+    background: linear-gradient(45deg, #4CAF50, #2196F3); /* Initial gradient */
+  }
+  50% {
+    background: linear-gradient(45deg, #2196F3, #FF9800); /* Intermediate gradient */
+  }
+  100% {
+    background: linear-gradient(45deg, #FF9800, #4CAF50); /* Final gradient */
+  }
+}
+
+.container {
+  max-width: 1000px;
+  margin: 0;
+  padding: 20px;
+}
+
+.dataset {
+  border-collapse: collapse; 
+  width: 100%;
+}
+
+.dataset th, .dataset td {
+  border: 1px solid #ddd; 
+  padding: 12px; 
+  text-align: left; 
+}
+
+.dataset th {
+  background-color: #f2f2f2; 
+  color: #333333; 
+}
+
+.dataset tr:nth-child(even) {
+  background-color: #f9f9f9; 
+}
+
+.table {
+  border-collapse: collapse; 
+  width: 100%; 
+}
+
+.table th {
+  background-color: #333333;
+  color: white;
+  border: 1px solid #000000;
+  padding: 12px;
+  text-align: left;
+}
+
+.table tr:nth-child(even) {
+  background-color: #f2f2f2;
+}
+
+.table td {
+  background-color: #ffffff; 
+  border: 1px solid #000000; 
+  padding: 12px;
+  text-align: left;
+}
+
+.side-image {
+  width: 350px; 
+  height: auto; 
+  position: fixed; 
+  top: 60%; 
+  right: 20px; 
+  transform: translateY(-50%); 
+  border-radius: 8px; 
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); 
+}
+
+.header {
+  background-color: #ffffff; 
+  padding: 20px; 
+}
+
+.header-image {
+  max-width: 100%; 
+  height: auto; 
+  border-radius: 8px; 
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); 
+}
+
+img {
+  border: 2px solid #ccc;
+  border-radius: 8px; 
+  max-width: 100%; 
+  height: auto; 
+}
+
+.main-content {
+  float: left; 
+  width: 70%; 
+}
+
+.sidebar {
+  float: right; 
+  width: 100%; 
+}
+
+h1, h2, h3 {
+  font-family: "Arial", sans-serif; 
+  font-weight: bold; 
+  color: #333333; 
+}
+
+a {
+  color: #007bff; 
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline; 
+}
+
+@media screen and (max-width: 768px) {
+  .sidebar, .main-content {
+    float: none; 
+    width: 100%; 
+  }
+}

@@ -1,0 +1,140 @@
+---
+title: "Code"
+---
+
+**Research question 1:**
+
+**Is there a significant difference in sales performance (revenue and profit) between online and offline sales channels, and how does this vary across item types?**
+
+```{r,echo=TRUE, warning = FALSE, message=FALSE, eval=FALSE}
+library(tidyverse)
+
+data <- read.csv("5000 Sales Records.csv")
+
+channel_analysis <- data %>%
+  group_by(Sales.Channel, Item.Type) %>%
+  summarise(Total.Revenue = sum(Total.Revenue),
+            Total.Profit = sum(Total.Profit),
+            .groups = 'drop')
+
+revenue_t_test <- t.test(Total.Revenue ~ Sales.Channel, data = channel_analysis)
+profit_t_test <- t.test(Total.Profit ~ Sales.Channel, data = channel_analysis)
+
+
+ggplot(channel_analysis, aes(x = Item.Type, y = Total.Revenue, fill = Sales.Channel)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) +  
+  labs(title = "Revenue Comparison Between Sales Channels",
+       x = "Item Type",
+       y = "Total Revenue")
+print(revenue_t_test)
+
+ggplot(channel_analysis, aes(x = Item.Type, y = Total.Profit, fill = Sales.Channel)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) +  
+  labs(title = "Profit Comparison Between Sales Channels",
+       x = "Item Type",
+       y = "Total Profit")
+print(profit_t_test)
+```
+
+**Research Question 2:**
+
+**Does market penetration (measured by the number of units sold) differ significantly across product categories in different regions?**
+
+```{r echo = TRUE, warning = FALSE, message=FALSE, eval=FALSE}
+
+library(readr)
+library(dplyr)
+library(plotly)
+
+
+sales_data <- read.csv("5000 Sales Records.csv")
+
+sales_data <- sales_data %>%
+  mutate(
+    Region = 
+      as.factor(Region),
+    Item.Type = as.factor(Item.Type),
+    Order.Date = as.Date(Order.Date, format="%m/%d/%Y")  
+  )
+
+anova_results <- aov(Units.Sold ~ Item.Type * Region, data = sales_data)
+
+
+aggregated_data <- sales_data %>%
+  group_by(Item.Type, Region) %>%
+  summarise(Average.Units.Sold = mean(Units.Sold), .groups = 'drop')
+
+
+colors <- RColorBrewer::brewer.pal(8, "Paired")
+
+for(item_type in unique(aggregated_data$Item.Type)) {
+  item_data <- filter(aggregated_data, Item.Type == item_type)
+
+  p <- plot_ly(item_data, x = ~Region, y = ~Average.Units.Sold, type = 'bar', name = ~Region, color = ~Region, colors = colors) %>%
+    layout(
+      yaxis = list(title = 'Average Units Sold'),
+      xaxis = list(title = 'Region', tickangle = 45),
+      barmode = 'group',
+      title = paste("Average Units Sold Across Regions for", item_type),
+      bargap = 0.7
+    )
+
+  print(p)
+}
+```
+
+**Research Question 3:**
+
+**predict the total sales (Total Revenue) based on features like Country, Item Type, Sales Channel, Order Priority, etc. This could help in forecasting future sales and optimizing inventory and marketing strategies.**
+
+```{r, echo = TRUE, warning = FALSE, message=FALSE, eval=FALSE}
+library(dplyr)
+library(caret)
+library(glmnet)
+
+sales_data <- read.csv("5000 Sales Records.csv", stringsAsFactors = TRUE)
+
+summary(sales_data)
+cat("Number of rows before cleaning: ", nrow(sales_data), "\n")
+
+sales_data <- sales_data %>% na.omit()
+cat("Number of rows after cleaning: ", nrow(sales_data), "\n")
+
+frequency <- table(sales_data$Country)
+sales_data$Country <- as.factor(ifelse(frequency[sales_data$Country] < 10, "Other", as.character(sales_data$Country)))
+sales_data$Country <- as.numeric(as.factor(sales_data$Country))  
+
+sales_data$Item.Type <- factor(sales_data$Item.Type)
+sales_data$Sales.Channel <- factor(sales_data$Sales.Channel)
+sales_data$Order.Priority <- factor(sales_data$Order.Priority)
+
+set.seed(123)
+indexes <- createDataPartition(sales_data$Total.Revenue, p=0.8, list=FALSE)
+train_data <- sales_data[indexes,]
+test_data <- sales_data[-indexes,]
+
+x_train <- model.matrix(Total.Revenue ~ . - 1, data = train_data)
+y_train <- train_data$Total.Revenue
+
+cv_lasso <- cv.glmnet(x_train, y_train, alpha = 1)
+best_lasso <- glmnet(x_train, y_train, alpha = 1, lambda = cv_lasso$lambda.min)
+
+x_test <- model.matrix(Total.Revenue ~ . - 1, data = test_data)
+lasso_predictions <- predict(best_lasso, s = cv_lasso$lambda.min, newx = x_test)
+
+lasso_results <- postResample(lasso_predictions, test_data$Total.Revenue)
+
+cat("Lasso Model Results: RMSE = ", lasso_results[1], " R-squared = ", lasso_results[2], "\n")
+
+plot_data <- data.frame(Actual = test_data$Total.Revenue, Predicted = as.vector(lasso_predictions))
+
+ggplot(plot_data, aes(x = Actual, y = Predicted)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = "lm", col = "blue") +
+  labs(title = "Actual vs. Predicted Total Revenue", x = "Actual Revenue", y = "Predicted Revenue") +
+  theme_minimal()
+```

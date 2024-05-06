@@ -1,0 +1,365 @@
+---
+title: "Sales_website"
+---
+
+::: side-image
+![](giphy.gif){width="450"}
+:::
+
+## Dataset
+
+Source: <https://data.world/bobmajor/sales>
+
+*The dataset, sourced from data.world, provides a comprehensive overview of sales transactions, consisting of regions, countries, and product types. It includes vital information such as sales channels, order priorities, dates, IDs, and financial details, enabling analysis of sales performance, market trends comprehension, and business strategy optimization. Key columns include region, country, item type, sales channel, order priority, order and ship dates, order ID, units sold, unit price, unit cost, total revenue, total cost, and total profit. This dataset is invaluable for evaluating efficiency, profit margins, and forecasting future trends, facilitating informed decision-making. data.world, a renowned platform for diverse datasets, serves as the dataset's source, offering a rich resource for data exploration and analysis.*
+
+.
+
+```{r echo=FALSE, warning=FALSE}
+  data <- read.csv("5000 Sales Records.csv")
+  subset_data <- data[1:5, 1:14]
+  knitr::kable(subset_data, "html")  # Convert table to HTML format
+```
+
+.
+
+## Research Questions
+
+*.*
+
+### Research Question 1:
+
+.
+
+**Is there a significant difference in sales performance (revenue and profit) between online and offline sales channels, and how does this vary across item types?**
+
+As per the analysis, When we compared the total revenue from online and offline sales channels, we found that there wasn't a big difference between them. Basically, the money coming in from both channels was pretty similar. So, whether people were buying stuff online or in person, it didn't affect the total revenue much.
+
+```{r,echo=FALSE, warning = FALSE, message=FALSE}
+# Load necessary libraries
+library(tidyverse)
+
+# Read the data
+data <- read.csv("5000 Sales Records.csv")
+
+# Aggregating data by Sales Channel and Item Type for revenue and profit
+channel_analysis <- data %>%
+  group_by(Sales.Channel, Item.Type) %>%
+  summarise(Total.Revenue = sum(Total.Revenue),
+            Total.Profit = sum(Total.Profit),
+            .groups = 'drop')
+
+# Hypothesis Testing: Comparing Total Revenue and Profit between Channels
+# Assuming normal distribution and independent samples
+revenue_t_test <- t.test(Total.Revenue ~ Sales.Channel, data = channel_analysis)
+profit_t_test <- t.test(Total.Profit ~ Sales.Channel, data = channel_analysis)
+
+
+# Plotting the data with improved x-axis labels
+ggplot(channel_analysis, aes(x = Item.Type, y = Total.Revenue, fill = Sales.Channel)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) +  # Rotate labels for better fit
+  labs(title = "Revenue Comparison Between Sales Channels",
+       x = "Item Type",
+       y = "Total Revenue")
+print(revenue_t_test)
+
+```
+
+similarly, when we look at the total profit, there wasn't a significant gap between online and offline sales. The money made from both channels was almost the same. So, in terms of making money, it didn't really matter whether customers were buying online or in a physical store.
+
+```{r, echo=FALSE, warning = FALSE, message=FALSE}
+ggplot(channel_analysis, aes(x = Item.Type, y = Total.Profit, fill = Sales.Channel)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) +  # Rotate labels for better fit
+  labs(title = "Profit Comparison Between Sales Channels",
+       x = "Item Type",
+       y = "Total Profit")
+print(profit_t_test)
+```
+
+**Outcomes:**
+
+Marketing and Sales Strategy: Since there isn't a big difference in revenue and profit between online and offline sales, the company doesn't have to worry too much about favoring one channel over the other just because of money. Instead, they can think about other things like which channel reaches more customers or is more convenient for them.
+
+Channel Investment: The company can invest in both online and offline channels equally since they both bring in similar profits. This way, they can have a strong presence in both areas and cater to different customer preferences.
+
+Further Analysis: To fine-tune their strategy even more, the company can look into things like who's buying their products, how much they're spending, and where they're located. This info could help them figure out if certain products do better in specific channels or regions, which could be useful for targeted marketing.
+
+.
+
+### Research Question 2:
+
+.
+
+**Does market penetration (measured by the number of units sold) differ significantly across product categories in different regions?**
+
+We performed an ANOVA test to compare the average units sold across different product categories and regions. This can help determine if some regions or product types perform significantly better than others.
+
+.
+
+.
+
+```{r echo = FALSE, warning = FALSE, message=FALSE}
+# Load necessary libraries
+library(readr)
+library(dplyr)
+library(plotly)
+
+# Load the data
+sales_data <- read.csv("5000 Sales Records.csv")
+
+# Preprocess the data
+sales_data <- sales_data %>%
+  mutate(
+    Region = 
+      as.factor(Region),
+    Item.Type = as.factor(Item.Type),
+    Order.Date = as.Date(Order.Date, format="%m/%d/%Y")  # Ensure correct date format
+  )
+
+# Conducting ANOVA to test differences in units sold across item types in different regions
+anova_results <- aov(Units.Sold ~ Item.Type * Region, data = sales_data)
+
+
+aggregated_data <- sales_data %>%
+  group_by(Item.Type, Region) %>%
+  summarise(Average.Units.Sold = mean(Units.Sold), .groups = 'drop')
+
+
+colors <- RColorBrewer::brewer.pal(8, "Paired")
+
+for(item_type in unique(aggregated_data$Item.Type)) {
+  # Filter data for the current item type
+  item_data <- filter(aggregated_data, Item.Type == item_type)
+
+  # Generate the plot for the current item type using plotly
+  p <- plot_ly(item_data, x = ~Region, y = ~Average.Units.Sold, type = 'bar', name = ~Region, color = ~Region, colors = colors) %>%
+    layout(
+      yaxis = list(title = 'Average Units Sold'),
+      xaxis = list(title = 'Region', tickangle = 45),
+      barmode = 'group',
+      title = paste("Average Units Sold Across Regions for", item_type),
+      bargap = 0.7  # Adjusting the gap between bars to make them appear thinner
+    )
+
+  # Print the plot
+  print(p)
+}
+```
+
+```{r, echo = FALSE, warning = FALSE, message=FALSE}
+# Create an aggregated dataset for plotting
+aggregated_data <- sales_data %>%
+  group_by(Item.Type, Region) %>%
+  summarise(Average.Units.Sold = mean(Units.Sold), .groups = 'drop')
+
+# Define color palette
+colors <- RColorBrewer::brewer.pal(8, "Paired")
+
+interactive_plot <- plot_ly(aggregated_data, x = ~Item.Type, y = ~Average.Units.Sold, type = 'bar', name = ~Region, color = ~Region, colors = colors) %>%
+  layout(yaxis = list(title = 'Average Units Sold'),
+         xaxis = list(title = 'Item Type'),
+         barmode = 'stack',
+         title = list(
+           text = 'Interaction of Item Type and Region on Average Units Sold',
+           x = 0.4, # Align title to the center
+           xanchor = 'center', # Anchor title to the center
+           y = 1.2, # Adjust the vertical position of the title
+           pad = list(t = 20, b = 20) # Adjust the top and bottom padding
+         ))
+
+# Print the interactive plot
+interactive_plot
+
+
+```
+
+The interpretations for each graph based on the average units sold across different regions for various product categories:
+
+1.  ***Beverages:***
+    -   *Asia* and *Australia and Oceania* lead in sales, suggesting high demand or effective distribution networks in these regions.
+    -   Sales in *North America* and *Sub-Saharan Africa* are significantly lower, indicating either less preference for beverages or less effective market penetration in these regions.
+2.  ***Cereal:***
+    -   *Asia* again shows strong sales, consistent with a large consumer base or cultural preferences for cereal products.
+    -   *North America* and *Sub-Saharan Africa* have the lowest sales, which might reflect cultural dietary preferences or competitive market conditions.
+3.  ***Clothes:***
+    -   High sales in *Asia* and *Europe* indicate robust markets for clothing, likely driven by fashion industries and large urban populations.
+    -   *Sub-Saharan Africa* has the least sales, which may reflect economic factors or different clothing needs and preferences.
+4.  ***Cosmetics:***
+    -   *Asia* and *Australia and Oceania* have very high sales, likely due to strong beauty industry presence and consumer interest in personal care.
+    -   *Middle East and North Africa* show lower sales, possibly due to cultural norms or market saturation with local brands.
+5.  ***Fruits:***
+    -   *Asia* leads significantly, which might be due to local availability and a cultural preference for fresh fruits.
+    -   *North America* shows comparatively lower sales, possibly due to import costs or preference for processed foods.
+6.  ***Household:***
+    -   High sales in *Asia* suggest a large market for household items, supported by urban development and population density.
+    -   Lower sales in *Sub-Saharan Africa* might be influenced by lower urbanization rates and different living standards.
+7.  ***Meat:***
+    -   *Asia* and *Australia and Oceania* are top sellers, indicating strong meat consumption patterns possibly driven by both local production and imports.
+    -   Sales are low in *North America*, which might be surprising and could indicate regional preferences for specific types of meat or competition from other protein sources.
+8.  ***Office Supplies:***
+    -   *Asia* shows the highest sales, reflecting its role as a major hub for both manufacturing and consumption of office-related products.
+    -   *Sub-Saharan Africa* has the lowest sales, which could be related to fewer formal business environments or lower economic activities involving office settings.
+9.  ***Personal Care:***
+    -   Similar to cosmetics, *Asia* and *Australia and Oceania* have high sales, emphasizing strong markets for personal care products.
+    -   Lower sales in *Sub-Saharan Africa* could be due to economic limitations or different consumer priorities.
+10. ***Snacks:***
+    -   High sales in *Asia* indicate a strong snack culture or effective distribution.
+    -   *North America* has surprisingly low sales which could suggest dietary trends or competitive markets with diverse food options.
+11. ***Vegetables:***
+    -   *Asia* leads, likely due to dietary habits and the prevalence of vegetables in local cuisines.
+    -   *Sub-Saharan Africa* shows low sales, potentially due to agricultural practices focusing on subsistence rather than commercial vegetable farming.
+
+```{r,echo=FALSE}
+summary(anova_results)
+```
+
+1.  **Degrees of Freedom (Df):**
+
+    -   **Item Type:** There are 11 different categories of items.
+
+    -   **Region:** There are 6 regions.
+
+    -   **Item Type by Region:** There are 66 combinations of item types and regions considered.
+
+    -   **Residuals:** There are 4916 leftovers, basically the stuff the model couldn't explain.
+
+2.  **Sum of Squares (Sum Sq) and Mean Squares (Mean Sq):**
+
+    -   This shows how much each factor and their combos contribute to the differences in sales.
+
+    -   **Item Type:** The variation in sales due to different item types is around 85.53 million.
+
+    -   **Region:** Differences between regions contribute about 62.21 million to sales variation.
+
+    -   **Item Type by Region:** The combo of item type and region contributes about 608.8 million to the sales variation, showing that it matters which item is sold where.
+
+3.  **F-value:**
+
+    -   These numbers compare the impact of each factor on sales.
+
+    -   The F-values are low (0.917 for item type, 1.222 for region, and 1.087 for their interaction), meaning neither item types, regions, nor their combos strongly affect sales on their own.
+
+4.  **P-value (Pr(\>F)):**
+
+    **Item Type (0.523), Region (0.291), and Item Type by Region (0.295):** All these numbers are higher than 0.05, meaning there's no significant difference in sales averages across different item types, regions, or their combos. So, we can't say there's a real difference.
+
+    **Conclusion**
+
+    Overall, the analysis indicates a uniformity in sales performance across different regions and item types, suggesting the need for a broader strategy that transcends regional and item-based differences, or a deeper dive into other factors influencing sales.
+
+### Research Question 3:
+
+.
+
+predict the total sales (Total Revenue) based on features like Country, Item Type, Sales Channel, Order Priority, etc. This could help in forecasting future sales and optimizing inventory and marketing strategies.
+
+.
+
+```{r, echo = FALSE, warning = FALSE, message=FALSE}
+library(dplyr)
+library(caret)
+library(glmnet)
+
+# Load and prepare data
+sales_data <- read.csv("5000 Sales Records.csv", stringsAsFactors = TRUE)
+
+# Check and summarize missing values before any processing
+summary(sales_data)
+cat("Number of rows before cleaning: ", nrow(sales_data), "\n")
+
+# Remove rows with missing data
+sales_data <- sales_data %>% na.omit()
+cat("Number of rows after cleaning: ", nrow(sales_data), "\n")
+
+# Aggregate less frequent countries into 'Other'
+frequency <- table(sales_data$Country)
+sales_data$Country <- as.factor(ifelse(frequency[sales_data$Country] < 10, "Other", as.character(sales_data$Country)))
+sales_data$Country <- as.numeric(as.factor(sales_data$Country))  # Convert to numeric to reduce factor levels
+
+# Ensure other categorical columns are factors
+sales_data$Item.Type <- factor(sales_data$Item.Type)
+sales_data$Sales.Channel <- factor(sales_data$Sales.Channel)
+sales_data$Order.Priority <- factor(sales_data$Order.Priority)
+
+# Split data into training and testing sets
+set.seed(123)
+indexes <- createDataPartition(sales_data$Total.Revenue, p=0.8, list=FALSE)
+train_data <- sales_data[indexes,]
+test_data <- sales_data[-indexes,]
+
+# Lasso Regression Model for feature selection and prediction
+x_train <- model.matrix(Total.Revenue ~ . - 1, data = train_data)
+y_train <- train_data$Total.Revenue
+
+# Cross-validation for choosing lambda
+cv_lasso <- cv.glmnet(x_train, y_train, alpha = 1)
+best_lasso <- glmnet(x_train, y_train, alpha = 1, lambda = cv_lasso$lambda.min)
+
+# Predict with Lasso
+x_test <- model.matrix(Total.Revenue ~ . - 1, data = test_data)
+lasso_predictions <- predict(best_lasso, s = cv_lasso$lambda.min, newx = x_test)
+
+# Evaluate the Lasso model
+lasso_results <- postResample(lasso_predictions, test_data$Total.Revenue)
+
+# Print results
+cat("Lasso Model Results: RMSE = ", lasso_results[1], " R-squared = ", lasso_results[2], "\n")
+
+# Prepare data for plotting
+plot_data <- data.frame(Actual = test_data$Total.Revenue, Predicted = as.vector(lasso_predictions))
+
+# Plotting the actual vs predicted results
+ggplot(plot_data, aes(x = Actual, y = Predicted)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = "lm", col = "blue") +
+  labs(title = "Actual vs. Predicted Total Revenue", x = "Actual Revenue", y = "Predicted Revenue") +
+  theme_minimal()
+
+```
+
+.
+
+**Detailed Interpretation of Predictive Analysis for Total Sales Revenue**
+
+**Research Context and Objective**
+
+The aim of this analysis is to predict total sales revenue using key features such as Country, Item Type, Sales Channel, and Order Priority. Such predictive modeling is crucial for businesses to forecast future sales accurately, which in turn assists in making informed decisions regarding inventory management and marketing strategies.
+
+**Data Preparation and Analysis Methodology**
+
+The data, sourced from the "5000 Sales Records.csv", underwent several preprocessing steps:
+
+**1. Data Cleaning:** Rows with missing values were identified and removed to ensure the quality and accuracy of the analysis.
+
+**2. Feature Engineering:** Less frequent countries were categorized under 'Other' to streamline the analysis. Additionally, categorical variables such as Country, Item Type, Sales Channel, and Order Priority were appropriately encoded to facilitate their use in modeling.
+
+**3. Model Development:** A Lasso Regression Model was employed due to its efficacy in feature selection and handling multicollinearity by shrinking coefficients of less important features to zero.
+
+**Predictive Modeling Process**
+
+-   **Training and Testing Data Split:** The dataset was divided into training (80%) and testing (20%) sets to validate the model's performance.
+-   **Model Training:** The Lasso model was trained using the training set, with cross-validation to optimize the lambda parameter, minimizing overfitting and enhancing model generalizability.
+-   **Model Prediction and Evaluation:** The trained model was used to predict the total revenue on the testing set. Model performance was quantitatively assessed using Root Mean Squared Error (RMSE) and R-squared metrics, which provide insights into the accuracy and variability explained by the model.
+
+**Results**
+
+-   **Model Performance:**
+    -   **RMSE:** 45,226.41 - Indicates the average deviation of predicted revenues from actual revenues. A lower RMSE signifies better predictive accuracy.
+    -   **R-squared:** 0.999972 - Reflects that the model explains almost all the variability in the revenue data, indicating a highly accurate model.
+
+**Visualization**
+
+The scatter plot titled "Actual vs. Predicted Total Revenue" visually compares the predicted values against the actual values, with a linear fit line indicating the prediction accuracy across different revenue scales. The tight alignment of data points along the 45-degree line suggests that the model predictions closely match the actual outcomes.
+
+**Professional Insights**
+
+-   **High Model Accuracy:** The near-perfect R-squared value suggests that the model is highly effective in predicting total revenue based on the features used. This level of accuracy is promising for deploying the model in real-world scenarios.
+-   **Utility in Strategic Decision-Making:** The ability to predict revenue accurately provides businesses with a strategic advantage in managing resources, planning inventory, and crafting targeted marketing strategies based on predicted sales trends.
+-   **Recommendation for Further Research:** To enhance the model, additional variables such as economic indicators, market trends, and consumer behavior metrics could be incorporated. Furthermore, experimenting with other predictive models like Random Forest or Gradient Boosting might yield insights into the robustness of the predictive accuracy across different algorithms.
+
+**Conclusion**
+
+This analysis successfully demonstrates the use of Lasso Regression in predicting total sales revenue, highlighting its practical applications in strategic business planning and decision-making. The methodology and insights derived from this study could serve as a blueprint for similar predictive analytics tasks within different organizational contexts.
